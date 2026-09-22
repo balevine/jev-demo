@@ -1,6 +1,8 @@
 # jev-demo
 
-THIS IS A DEMONSTRATION OF HOW TO USE JEV TO LABEL EMAILS
+This is a demonstration showing how to use Jev to label Gmail threads.
+
+⚠️ This is not meant for production use. Do not use this with a live email account. ⚠️
 
 ## What it does
 
