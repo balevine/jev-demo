@@ -20,6 +20,7 @@ def test_plaintext_and_missing_backends_are_rejected(
     backend: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(token_store, "backend_name", lambda: backend)
+    monkeypatch.setattr(token_store, "chained_names", list)
 
     assert token_store.available() is False
     with pytest.raises(token_store.KeychainUnavailable):
@@ -36,14 +37,73 @@ def test_plaintext_and_missing_backends_are_rejected(
 )
 def test_real_backends_are_accepted(backend: str, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(token_store, "backend_name", lambda: backend)
+    monkeypatch.setattr(token_store, "chained_names", list)
 
     assert token_store.available() is True
     token_store.require_backend()
 
 
+def test_a_chainer_hiding_a_plaintext_backend_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A chainer writes to the first link that accepts, so every link counts.
+
+    Its own name passes any check made on the name alone, and the token would
+    still land in a plaintext file further down.
+    """
+    monkeypatch.setattr(token_store, "backend_name", lambda: "keyring.backends.chainer.Chainer")
+    monkeypatch.setattr(
+        token_store,
+        "chained_names",
+        lambda: ["keyring.backends.SecretService.Keyring", "keyrings.alt.file.PlaintextKeyring"],
+    )
+
+    assert token_store.available() is False
+    with pytest.raises(token_store.KeychainUnavailable, match="keyrings.alt"):
+        token_store.require_backend()
+
+
+def test_a_chainer_of_real_backends_is_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(token_store, "backend_name", lambda: "keyring.backends.chainer.Chainer")
+    monkeypatch.setattr(
+        token_store,
+        "chained_names",
+        lambda: ["keyring.backends.SecretService.Keyring"],
+    )
+
+    assert token_store.available() is True
+    token_store.require_backend()
+
+
+class _PlaintextKeyring:
+    """Stands in for keyrings.alt, which writes the token to a file."""
+
+
+class _Chainer:
+    """Stands in for keyring's chainer, which holds other backends."""
+
+    def __init__(self, *backends: object) -> None:
+        self.backends = list(backends)
+
+
+def test_the_chain_is_read_off_the_selected_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(token_store.keyring, "get_keyring", lambda: _Chainer(_PlaintextKeyring()))
+
+    assert token_store.chained_names() == [f"{__name__}._PlaintextKeyring"]
+
+
+def test_an_ordinary_backend_chains_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only a chainer carries other backends, so nothing else has a chain to read."""
+    monkeypatch.setattr(token_store.keyring, "get_keyring", lambda: _PlaintextKeyring())
+
+    assert token_store.chained_names() == []
+    assert token_store.backend_name() == f"{__name__}._PlaintextKeyring"
+
+
 def test_load_and_save_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
     stored: dict[tuple[str, str], str] = {}
     monkeypatch.setattr(token_store, "backend_name", lambda: "keyring.backends.macOS.Keyring")
+    monkeypatch.setattr(token_store, "chained_names", list)
     monkeypatch.setattr(
         token_store.keyring,
         "set_password",
