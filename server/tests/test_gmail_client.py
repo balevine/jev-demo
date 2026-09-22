@@ -136,6 +136,39 @@ def test_the_apply_endpoint_refuses_a_request_with_no_labels(gmail: FakeGmail) -
     assert gmail.modified == []
 
 
+@pytest.mark.parametrize("label_id", ["TRASH", "SPAM", "UNREAD", "INBOX", "Label_nonexistent"])
+def test_the_apply_endpoint_refuses_a_label_the_user_did_not_make(
+    gmail: FakeGmail, label_id: str
+) -> None:
+    """Gmail takes its own label IDs here, and adding TRASH would bin the thread."""
+    with TestClient(app) as client:
+        response = client.post("/apply", json={"thread_id": "18f", "label_ids": [label_id]})
+
+    assert response.status_code == 400
+    assert label_id in response.json()["detail"]
+    assert gmail.modified == []
+
+
+def test_one_bad_label_stops_the_whole_write(gmail: FakeGmail) -> None:
+    """Nothing is written at all, rather than the good ones going through first."""
+    with TestClient(app) as client:
+        response = client.post(
+            "/apply", json={"thread_id": "18f", "label_ids": ["Label_12", "TRASH"]}
+        )
+
+    assert response.status_code == 400
+    assert gmail.modified == []
+
+
+def test_a_write_of_the_users_own_labels_is_let_through(gmail: FakeGmail) -> None:
+    gmail_client.require_user_labels(["Label_12", "Label_19"], gmail)
+
+
+def test_checking_labels_only_looks_at_the_ones_the_user_made(gmail: FakeGmail) -> None:
+    with pytest.raises(gmail_client.UnknownLabels):
+        gmail_client.require_user_labels(["INBOX"], gmail)
+
+
 def test_the_labels_endpoint_returns_user_labels(gmail: FakeGmail) -> None:
     with TestClient(app) as client:
         body = client.get("/labels").json()

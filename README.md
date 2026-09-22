@@ -48,10 +48,14 @@ An External app left in Testing status gets refresh tokens that Google expires a
 ## Where things are kept
 
 - `credentials.json` at the repo root is the Google OAuth client. For a Desktop app client Google does not treat the client secret as confidential, and it grants nothing until someone completes consent.
-- **The OAuth token lives in the OS keychain**, under service `jev-demo` and account `gmail-oauth-token`. It is a refresh token for a live mailbox, so it never touches the disk and there is no file fallback. A machine with no keychain gets a startup error naming what to install. On macOS and Windows this works out of the box. On Linux, install a Secret Service provider such as gnome-keyring or KeePassXC.
+- **The OAuth token lives in the OS keychain**, under service `jev-demo` and account `gmail-oauth-token`. It is a refresh token for a live mailbox, so it never touches the disk and there is no file fallback. A machine with no keychain gets a startup error naming what to install. On macOS and Windows this works out of the box. On Linux, install a Secret Service provider such as gnome-keyring or KeePassXC. If `keyrings.alt` is installed, keyring may chain it behind a real backend, and the server refuses that too rather than let a token reach a plaintext file.
 - `~/.jev-demo/` holds the label descriptions you write in the settings screen.
 
 `TYPESAFE_API_KEY` comes from the environment, read out of a `.env` file at the repo root. Create it with your own key and keep it to yourself, the same as `credentials.json`.
+
+### Who can reach the server
+
+The server has no login of its own. Anything that can reach it can read your mail and label it, so it listens on 127.0.0.1 and answers only to requests addressed to `127.0.0.1`, `localhost`, or `::1`. That second part matters because a web page you have open can point a name it controls at 127.0.0.1 and reach the server as same origin, which nothing else would stop. Anything addressed by another name gets a 400. Set `JEV_DEMO_ALLOWED_HOSTS` to a comma separated list if you deliberately run it somewhere else, and understand that you are handing mailbox access to whoever can reach that address.
 
 ```
 TYPESAFE_API_KEY=ts-your-key-here

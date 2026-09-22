@@ -117,6 +117,14 @@ async def classify_threads(request: ClassifyRequest) -> StreamingResponse:
 
 @router.post("/apply")
 def apply(request: ApplyRequest) -> ApplyResponse:
-    """Add labels to one thread. This is the only endpoint that writes to Gmail."""
-    gmail_client.apply_labels(request.thread_id, request.label_ids)
+    """Add labels to one thread. This is the only endpoint that writes to Gmail.
+
+    The label IDs are checked against the user's own labels first. They arrive
+    from outside this server, and Gmail would take its own IDs here just as
+    readily, which would turn a filing decision into a thread in the trash. One
+    Gmail client serves both calls.
+    """
+    service = gmail_auth.gmail_service()
+    gmail_client.require_user_labels(request.label_ids, service)
+    gmail_client.apply_labels(request.thread_id, request.label_ids, service)
     return ApplyResponse(thread_id=request.thread_id, applied=request.label_ids)

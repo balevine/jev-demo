@@ -28,6 +28,25 @@ FETCH_WORKERS = 8
 GMAIL_DATE = "%Y/%m/%d"
 
 
+class UnknownLabels(RuntimeError):
+    """Raised when a write names a label the user did not make."""
+
+
+def _user_labels(service: Resource | None = None) -> list[Label]:
+    """The labels the user made, unsorted and without their descriptions.
+
+    Gmail's own labels are dropped here, which is the one place that decides
+    what this app is willing to treat as a label at all.
+    """
+    service = service or gmail_auth.gmail_service()
+    response = service.users().labels().list(userId="me").execute()
+    return [
+        Label(id=entry["id"], name=entry["name"])
+        for entry in response.get("labels", [])
+        if entry.get("type") == USER_LABEL
+    ]
+
+
 def list_labels(service: Resource | None = None) -> list[Label]:
     """Every label the user made, sorted by name, with its stored description.
 
@@ -35,14 +54,29 @@ def list_labels(service: Resource | None = None) -> list[Label]:
     label without one asks a weaker question and nothing would look wrong if a
     caller forgot.
     """
-    service = service or gmail_auth.gmail_service()
-    response = service.users().labels().list(userId="me").execute()
-    labels = [
-        Label(id=entry["id"], name=entry["name"])
-        for entry in response.get("labels", [])
-        if entry.get("type") == USER_LABEL
-    ]
+    labels = _user_labels(service)
     return descriptions.describe(sorted(labels, key=lambda label: label.name.lower()))
+
+
+def require_user_labels(label_ids: list[str], service: Resource | None = None) -> None:
+    """Refuse a write that names anything other than a label the user made.
+
+    Gmail takes its own label IDs in `addLabelIds` just like any other, so
+    adding TRASH or SPAM to a thread is a write this app should never make.
+    Sending only `addLabelIds` is what keeps a write additive, and this is what
+    keeps it a filing decision.
+
+    A run never needs this, because the labels it scores come from
+    `list_labels` and are already the user's own. It is here for the IDs that
+    arrive over HTTP from somewhere this code did not choose.
+    """
+    known = {label.id for label in _user_labels(service)}
+    unknown = [label_id for label_id in label_ids if label_id not in known]
+    if unknown:
+        raise UnknownLabels(
+            f"Not a label you made: {', '.join(unknown)}. This app only ever adds your "
+            "own labels to a thread, so Gmail's own labels are refused."
+        )
 
 
 def build_query(selection: ThreadSelection) -> str:
