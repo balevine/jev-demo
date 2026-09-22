@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+# Go names an installed binary after the last element of the module path, which
+# here would be `cli`. Building with an explicit name is what makes it `jev`.
+destination="$(go env GOBIN)"
+if [ -z "$destination" ]; then
+  destination="$(go env GOPATH)/bin"
+fi
+
+mkdir -p "$destination"
+
+cd "$(dirname "$0")/../cli"
+go build -o "$destination/jev" .
+
+echo "Installed jev to $destination/jev"
+
+case ":$PATH:" in
+  *":$destination:"*) ;;
+  *)
+    echo
+    echo "That directory is not on your PATH. Add it with:"
+    echo
+    echo "  export PATH=\"\$PATH:$destination\""
+    ;;
+esac

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+if ! command -v python3.13 >/dev/null; then
+  echo "python3.13 is not on your PATH. Install Python 3.13 and run this again." >&2
+  exit 1
+fi
+
+if ! command -v go >/dev/null; then
+  echo "go is not on your PATH. Install Go 1.26 and run this again." >&2
+  exit 1
+fi
+
+# The server. Creating a venv over one that already exists leaves it alone, so
+# this is safe to run again whenever the dependencies change.
+python3.13 -m venv server/.venv
+server/.venv/bin/pip install --quiet --disable-pip-version-check -e './server[dev]'
+
+echo "Built the server virtual environment at server/.venv"
+
+# The CLI, built and put on the PATH as `jev`.
+script/install

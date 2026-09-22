@@ -1,0 +1,37 @@
+[project]
+name = "jev-demo-server"
+version = "0.1.0"
+description = "Gmail thread labeling with Jev, TypeSafe's System One model"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "httpx",
+    "jinja2",
+    "google-api-python-client",
+    "google-auth-oauthlib",
+    "keyring",
+    "pydantic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "anyio",
+    "pytest",
+    "respx",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["jev_demo*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: calls a real API, and is skipped unless its key is in the environment"]
+
+[tool.ruff]
+line-length = 100

@@ -1,0 +1,41 @@
+{
+  "state": {
+    "thread": {
+      "subject": "Invoice #4021, the \"September\" one",
+      "from": "Ada <billing@acme.com>",
+      "date": "2026-09-18T14:02:11Z",
+      "messages": [
+        {
+          "from": "Ada <billing@acme.com>",
+          "date": "2026-09-18T14:02:11Z",
+          "has_attachments": true,
+          "text": "Your September invoice is attached.\nIt is due on the 30th."
+        },
+        {
+          "from": "me@example.com",
+          "date": "2026-09-19T09:00:00Z",
+          "has_attachments": false,
+          "text": "Paid, thanks."
+        }
+      ]
+    }
+  },
+  "questions": {
+    "Label_12": {
+      "type": "noul",
+      "instructions": "The Gmail label \"Invoices\" belongs on this email thread. That label means receipts, bills, and payment requests.",
+      "criteria": {
+        "true": "The thread's content clearly falls under this label.",
+        "false": "The thread is unrelated to this label, or only mentions it in passing."
+      }
+    },
+    "Label_19": {
+      "type": "noul",
+      "instructions": "The Gmail label \"Recruiting\" belongs on this email thread.",
+      "criteria": {
+        "true": "The thread's content clearly falls under this label.",
+        "false": "The thread is unrelated to this label, or only mentions it in passing."
+      }
+    }
+  }
+}

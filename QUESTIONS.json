@@ -1,0 +1,34 @@
+{# One noul question, as a Jinja2 template.
+
+   The server renders this once per Gmail label and sends all of them in a
+   single Jev request, keyed by label ID.
+
+   `{{ label.name }}` has to appear in `instructions`. Question IDs are never
+   shown to the model, so the rendered instructions are everything it knows
+   about a label. Leave the name out and every question renders identically,
+   which makes every answer meaningless. The server checks for this at startup
+   and refuses to run without it.
+
+   The instructions are built as one string and then passed through `tojson`,
+   rather than written as a quoted JSON string with values dropped into it. A
+   label named `"Urgent"` carries quote marks, and `tojson` is what keeps those
+   from ending the string early.
+
+   Available variables.
+
+     label.name
+     label.description   empty when nothing is stored for the label
+     thread.*            the same variables STATE.json lists
+
+   A noul answer is a probability from 0 to 1 rather than a yes or a no. The
+   server compares it to the threshold.
+#}
+{% set meaning = " That label means " ~ label.description ~ "." if label.description else "" %}
+{
+  "type": "noul",
+  "instructions": {{ ('The Gmail label "' ~ label.name ~ '" belongs on this email thread.' ~ meaning) | tojson }},
+  "criteria": {
+    "true": "The thread's content clearly falls under this label.",
+    "false": "The thread is unrelated to this label, or only mentions it in passing."
+  }
+}

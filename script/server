@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+source server/.venv/bin/activate
+
+exec uvicorn jev_demo.main:app --reload --env-file .env

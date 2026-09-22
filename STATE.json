@@ -1,0 +1,41 @@
+{# The Jev state, as a Jinja2 template.
+
+   It renders to text and is then parsed as JSON, so every value that comes
+   from an email goes through the `tojson` filter. That filter emits a fully
+   quoted and escaped JSON value, which is why nothing here has quotes around
+   it. Take the filter off and the first message containing a quote mark or a
+   newline turns the whole state into invalid JSON.
+
+   Available variables.
+
+     thread.subject
+     thread.sender
+     thread.date
+     thread.message_count
+     thread.messages[]  with sender, recipient, date, body, has_attachments
+
+   `has_attachments` is a plain boolean so a label can be asked about it. A
+   receipts label that expects an attached invoice is the obvious case.
+   Filenames are left out, because Jev cannot open an attachment and the names
+   would be context spent for nothing.
+
+   The thread ID and the snippet are left out for the same reason. Both exist
+   on the server, they just are not worth paying for here.
+#}
+{
+  "thread": {
+    "subject": {{ thread.subject | tojson }},
+    "from": {{ thread.sender | tojson }},
+    "date": {{ thread.date | tojson }},
+    "messages": [
+{% for m in thread.messages %}
+      {
+        "from": {{ m.sender | tojson }},
+        "date": {{ m.date | tojson }},
+        "has_attachments": {{ m.has_attachments | tojson }},
+        "text": {{ m.body | tojson }}
+      }{% if not loop.last %},{% endif %}
+{% endfor %}
+    ]
+  }
+}
