@@ -12,6 +12,20 @@ The label taxonomy comes from your own Gmail account. Every label you made becom
 
 ## Quickstart
 
+In your terminal, clone the repository.
+
+```
+git clone https://github.com/balevine/jev-demo
+```
+
+Then move into the copy it made.
+
+```
+cd jev-demo
+```
+
+Every command below runs from that directory.
+
 Do the Google setup below once and put your `TYPESAFE_API_KEY` in `.env`. After that, getting going is two commands and a run is three more.
 
 ```
